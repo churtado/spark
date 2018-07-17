@@ -32,3 +32,12 @@ object Rdd {
     sc.stop()
   }
 }
+
+class SearchFunctions(val query: String) {
+  def isMatch(s: String): Boolean = {
+    s.contains(query)
+  }
+  def getMatchesFunctionReference(rdd: RDD[String]): RDD[String] ={
+    rdd.map(isMatch)
+  }
+}
