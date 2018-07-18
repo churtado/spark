@@ -177,3 +177,5 @@ project/target/config-classes/$57caca08ef4928836ac6.cache
 .idea/vcs.xml
 .idea/vcs.xml
 *.class
+target/scala-2.11/classes/rdd/Rdd$$anonfun$1.class
+*.class

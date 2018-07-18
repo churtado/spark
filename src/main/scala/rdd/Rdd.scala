@@ -40,6 +40,19 @@ object Rdd {
     iris.first()
     iris.count()
 
+    // some examples with map
+    val nums = sc.parallelize(List(1,2,3,4))
+    val squared = nums.map(x => x * x)
+    println("Example with map transformation")
+    println(squared.collect().mkString(","))
+
+    // flatMap is called for every element of the input RDD, and you get back an RDD of iterators for every element
+    val lines2 = sc.parallelize(List("hello world", "hi"))
+    val words2 = lines2.flatMap(line => line.split(" "))
+    println("flatmap example")
+    println(words2.first())
+
+
     // use collect() to get the entire dataset: it must fit in memory
     iris.collect().foreach(println)
 
@@ -53,7 +66,18 @@ class SearchFunctions(val query: String) {
   def isMatch(s: String): Boolean = {
     s.contains(query)
   }
-  /*def getMatchesFunctionReference(rdd: RDD[String]): RDD[String] = {
+  // pass references to avoid serializing the whole object and passing shit you don't need
+  def getMatchesFunctionReference(rdd: RDD[String]): RDD[Boolean] = {
     rdd.map(isMatch)
-  }*/
+  }
+
+  def getMatchesFieldReference(rdd: RDD[String]) = {
+    rdd.map(x => x.split(query))
+  }
+
+  def getMatchesNoReference(rdd: RDD[String]):RDD[Array[String]] = {
+    // Safe: extract just the field we need into a local variable
+    val query_ = this.query
+    rdd.map(x => x.split(query_))
+  }
 }
