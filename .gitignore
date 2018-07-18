@@ -170,3 +170,10 @@ target/streams/test/externalDependencyClasspath/$global/streams/export
 target/streams/test/managedClasspath/$global/streams/export
 target/streams/test/unmanagedClasspath/$global/streams/export
 target/streams/test/unmanagedJars/$global/streams/export
+target/scala-2.11/classes/rdd/SearchFunctions.class
+*.class
+project/target/config-classes/$57caca08ef4928836ac6.cache
+*.cache
+.idea/vcs.xml
+.idea/vcs.xml
+*.class
