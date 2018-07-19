@@ -209,3 +209,4 @@ target/scala-2.11/classes/rdd/Rdd$$anonfun$1.class
 .idea/libraries/sbt__org_apache_avro_avro_mapred_1_7_7_hadoop2_jar.xml
 .idea/libraries/sbt__org_apache_commons_commons_compress_1_4_1_jar.xml
 .idea/libraries/sbt__org_tukaani_xz_1_0_jar.xml
+target/scala-2.11/classes/rdd/Rdd$$anonfun$1.class
