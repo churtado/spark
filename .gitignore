@@ -210,3 +210,17 @@ target/scala-2.11/classes/rdd/Rdd$$anonfun$1.class
 .idea/libraries/sbt__org_apache_commons_commons_compress_1_4_1_jar.xml
 .idea/libraries/sbt__org_tukaani_xz_1_0_jar.xml
 target/scala-2.11/classes/rdd/Rdd$$anonfun$1.class
+*.xml
+.idea/libraries/sbt__com_fasterxml_jackson_core_jackson_core_2_6_7_jar.xml
+.idea/libraries/sbt__com_google_code_findbugs_jsr305_1_3_9_jar.xml
+.idea/libraries/sbt__net_sf_py4j_py4j_0_10_6_jar.xml
+.idea/libraries/sbt__org_apache_avro_avro_ipc_1_8_2_tests_jar.xml
+.idea/libraries/sbt__org_apache_avro_avro_mapred_1_8_2_hadoop2_jar.xml
+.idea/libraries/sbt__org_apache_spark_spark_core_2_11_2_3_0_jar.xml
+.idea/libraries/sbt__org_apache_spark_spark_kvstore_2_11_2_3_0_jar.xml
+.idea/libraries/sbt__org_apache_spark_spark_launcher_2_11_2_3_0_jar.xml
+.idea/libraries/sbt__org_apache_spark_spark_network_common_2_11_2_3_0_jar.xml
+.idea/libraries/sbt__org_apache_spark_spark_network_shuffle_2_11_2_3_0_jar.xml
+.idea/libraries/sbt__org_apache_spark_spark_tags_2_11_2_3_0_jar.xml
+.idea/libraries/sbt__org_apache_spark_spark_unsafe_2_11_2_3_0_jar.xml
+.idea/libraries/sbt__org_slf4j_slf4j_api_1_7_16_jar.xml
