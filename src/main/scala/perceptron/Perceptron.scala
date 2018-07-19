@@ -1,5 +1,8 @@
 package perceptron
 
+import org.apache.log4j.Logger
+import org.apache.log4j.Level
+
 
 
 import org.apache.spark.{SparkConf, SparkContext}
@@ -10,6 +13,9 @@ import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 object Perceptron {
 
   def main(args: Array[String]): Unit = {
+
+    Logger.getLogger("org").setLevel(Level.OFF)
+    Logger.getLogger("akka").setLevel(Level.OFF)
 
     val conf = new SparkConf().setAppName("HelloWorld").setMaster("local")
     val sc = new SparkContext(conf)
@@ -27,17 +33,20 @@ object Perceptron {
     val df = ss.read.format("libsvm")
       .load("D:/data/perceptron.txt")
 
-    val layers = Array[Int](2, 1, 1, 2)
+    println(df.collect().mkString("||"))
+
+
+    val layers = Array[Int](2, 2, 1, 2)
 
     val trainer = new MultilayerPerceptronClassifier()
       .setLayers(layers)
       .setBlockSize(4)
-      .setSeed(1234L)
-      .setMaxIter(1)
+      .setSeed(12L)
+      .setMaxIter(3)
 
-    val model = trainer.fit(train)
+    val model = trainer.fit(df)
 
-    val result = model.transform(train)
+    val result = model.transform(df)
     val predictionAndLabels = result.select("prediction", "label")
     val evaluator = new MulticlassClassificationEvaluator()
       .setMetricName("accuracy")
