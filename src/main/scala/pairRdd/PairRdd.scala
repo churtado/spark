@@ -2,18 +2,33 @@ package pairRdd
 
 import org.apache.log4j.Logger
 import org.apache.log4j.Level
-import org.apache.spark.{SparkConf, SparkContext, HashPartitioner}
+import org.apache.spark.sql.{Row, SaveMode, SparkSession}
+import org.apache.spark.{HashPartitioner}
 
 object PairRdd {
   case class ScoreDetail(studentName: String, subject: String, score: Float)
+  case class Store(name: String)
 
   def main(args:Array[String]): Unit = {
 
     Logger.getLogger("org").setLevel(Level.OFF)
     Logger.getLogger("akka").setLevel(Level.OFF)
 
-    val conf = new SparkConf().setAppName("HelloWorld").setMaster("local")
-    val sc = new SparkContext(conf)
+    //val conf = new SparkConf().setAppName("HelloWorld").setMaster("local")
+    //val sc = new SparkContext(conf)
+
+    val spark = SparkSession
+      .builder()
+      .appName("test")
+      .master("local[2]")
+      .getOrCreate()
+
+
+    val sc = spark.sparkContext // doing it this way to be able to import implicits
+
+    import spark.implicits._
+
+    spark.conf.set("spark.sql.crossJoin.enabled", "true") // to enable cartesian products
 
     // we've created a small rdd
     val lines = sc.parallelize(List("panda 0", "pink 3", "pirate 3", "panda 1", "pink 4"))
@@ -57,6 +72,9 @@ object PairRdd {
     )
 
     val scoresWithKey = for { i <- scores } yield (i.studentName, i)
+
+    // specifying 3 partitions for my RDD to work in parallel in my cluster
+    // most of the operators accept a second param = # partitions
     val scoresWithKeyRDD = sc.parallelize(scoresWithKey).partitionBy(new HashPartitioner(3)).cache
 
     println("\npartition lengths and items")
@@ -78,6 +96,83 @@ object PairRdd {
     println("\ncombine by key:")
     avgScoresRDD.collect.foreach(println)
 
-    sc.stop()
+    val reduceData = Seq(("a", 3), ("b", 4), ("a", 1))
+    sc.parallelize(reduceData).reduceByKey((x,y) => x + y) // default parallelism
+    sc.parallelize(reduceData).reduceByKey((x,y) => x + y, 10) // choosing 10 partitions
+
+    val partitionExample = spark.sparkContext.parallelize(reduceData).reduceByKey((x,y) => x + y) // default parallelism
+    partitionExample.repartition(3) // shuffle across the network, very expensive operation
+    // faster than repartition, avoids data movement but only if decreasing partitions
+    partitionExample.coalesce(3)
+
+    // make sure you can safely call coalesce by checking the size of partitions to make sure it's reducing
+    println(partitionExample.partitions.size)
+
+    // groupByKey : (key, value) -> [key, iterable(values)]
+    // the byKey operations we've seen can be more efficient because they create aggregated rdd's
+    // meanwhile the the group by creates a list, that's less efficient
+
+    // cogroup() mixes data from multiple rdd's with the same key type: -> [key, iterable(v1), iterable(v2)]
+    // cogroup is used for joins
+
+    println("##########################")
+
+    // uses implicits
+    val employees = sc.parallelize(Array[(String, Option[Int])](
+      ("Rafferty", Some(31)), ("Jones", Some(33)), ("Heisenberg", Some(33)), ("Robinson", Some(34)), ("Smith", Some(34)), ("Williams", null)
+    )).toDF("LastName", "DepartmentID")
+
+    employees.show()
+
+    val departments = sc.parallelize(Array(
+      (31, "Sales"), (33, "Engineering"), (34, "Clerical"),
+      (35, "Marketing")
+    )).toDF("DepartmentID", "DepartmentName")
+
+    departments.show()
+
+    employees
+      .join(departments, "DepartmentID")
+      .show()
+
+    employees
+      .join(departments, Seq("DepartmentID"), "left_outer")
+      .show()
+
+    employees
+      .join(departments)  // cartesian product
+      .show(10)
+
+    val departmentsSortRDD = sc.parallelize(Array(
+      (31, "Sales"), (33, "Engineering"), (34, "Clerical"),
+      (35, "Marketing")
+    )).sortByKey()
+
+    println("######################## sorting ########################")
+    departmentsSortRDD.collect.foreach(println)
+
+
+    // controlling partitioning explicitly is possible in spark
+    // only useful in cases like doing joins
+    // works with key/value pairs, ensure a set of keys appear on a certain node
+    // basically you build your own hash for partitioning:
+    // .partitionBy(new HashPartitioner(100)) // Create 100 partitions
+
+    // partitionBy is a transformation, returns new RDD, meanwhile all other processing remains unchanged
+    // additionally, calls to join will "know" about the hash to reduce network traffic
+    // so join(A) means only A gets shuffled around the network, and to partitions that contain the hash
+    // being joined on
+
+    // these transforms result in known number of paritions, and joins will use this info:
+    // sortByKey and groupByKey -> range partitioned and hash-partitioned RDD's respectively
+    // find out the partitioner with the .partitioner property
+
+    // operations that act on one rdd involve shuffling in the network: reduceByKey, etc.
+    // binary operations will cause at least one rdd to be shuffled
+    // if both rdd's have same partitioner and cached on the same machiens, no shuffling occurs (p. 65)
+
+
+    spark.stop()
+    //sc.stop()
   }
 }
