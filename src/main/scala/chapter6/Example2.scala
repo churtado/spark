@@ -1,11 +1,9 @@
 package chapter6
 
-import org.apache.log4j.Logger
-import org.apache.log4j.Level
-import org.apache.spark.sql.{Row, SaveMode, SparkSession}
-import org.apache.spark.{HashPartitioner}
+import org.apache.log4j.{Level, Logger}
+import org.apache.spark.sql.SparkSession
 
-object Example {
+object Example2 {
   def main(args:Array[String]): Unit = {
 
     Logger.getLogger("org").setLevel(Level.OFF)
@@ -23,29 +21,35 @@ object Example {
 
     val sc = spark.sparkContext // doing it this way to be able to import implicits
 
-    import spark.implicits._
-
     spark.conf.set("spark.sql.crossJoin.enabled", "true") // to enable cartesian products
 
     val file = sc.textFile("D:/data/callsigns.txt")
 
     /**
-      * We'll be looking at shared variables. These variables are shared between partitions/nodes
-      * updates to their values as well. They're not just local copies. There are 2 types:
-      * accumulators and broadcast variables
+      * we can use accumulators for validation as well
       */
 
     // let's look at an accumulator for counting blank lines in the callsigns file
 
     // create an accumulator initialized to 0
-    val blankLines = sc.longAccumulator("counter")
+    val validCount = sc.longAccumulator("valid")
+    val invalidCount = sc.longAccumulator("invalid")
 
-    val callSigns = file.foreach { line =>
-      if(line.length() == 0) blankLines.add(1)
+    file.foreach { line =>
+      if(line.matches(raw"\A\d?[a-zA-Z]{1,2}\d{1,4}[a-zA-Z]{1,3}\Z")) {
+        validCount.add(1)
+      }else{
+        invalidCount.add(1)
+      }
     }
 
+    /**
+      * worker nodes can't access accumulator's values, this is doen for efficiency
+      * good for when you need to trace several values
+      */
     //callSigns.saveAsTextFile("output.txt")
-    println(s"Blank lines: $blankLines")
+    println(s"Valids: $validCount")
+    println(s"Invalids: $invalidCount")
 
   }
 }
