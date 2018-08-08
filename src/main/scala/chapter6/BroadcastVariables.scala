@@ -27,25 +27,6 @@ object BroadcastVariables {
 
     spark.conf.set("spark.sql.crossJoin.enabled", "true") // to enable cartesian products
 
-
-
-    /**
-      * Broadcast variables are the other side of the coin
-      * Send a read-only variable to all the workes (ex: lookup table)
-      *
-      * Spark sends all variables in closures to the worker nodes, but it can be
-      * inefficient: spark is optimized for sending small tasks and you might use
-      * the var in several places but spark sends it each time.
-      */
-
-    /**
-      * An example of why it's inefficient: looking up countries from the callsigns
-      * from an array. This runs, but if the table's big, sending it for each task
-      * is inefficient.
-      */
-
-    val signPrefixes = sc.broadcast(loadCallSignTable())
-
     val callSignRegex = "\\A\\d?[a-zA-Z]{1,2}\\d{1,4}[a-zA-Z]{1,3}\\Z".r
 
     val inputFile = "D:/data/callsigns.txt"
@@ -85,11 +66,50 @@ object BroadcastVariables {
     }
 
 
+    /**
+      * Broadcast variables are the other side of the coin
+      * Send a read-only variable to all the workes (ex: lookup table)
+      *
+      * Spark sends all variables in closures to the worker nodes, but it can be
+      * inefficient: spark is optimized for sending small tasks and you might use
+      * the var in several places but spark sends it each time.
+      *
+      * Note: the variable is sent to worker nodes only once and isn't updated
+      *
+      * To make sure it's read-only, use inmutable object. Otherwise you have to
+      * enforce read-only manually
+      */
 
+    /**
+      * An example of why it's inefficient: looking up countries from the callsigns
+      * from an array. This runs, but if the table's big, sending it for each task
+      * is inefficient.
+      */
+
+    /**
+      * As a last point, if you're broadcasting large values, you have to make sure
+      * you use an efficient serialization library. Java's default is bad, spark
+      * has one and there's another called Kryo.
+      */
+
+    val signPrefixes = sc.broadcast(loadCallSignTable()) // create broadcast variable
+
+    val countryContactCounts = contactCounts.map{ case(sign, count) =>
+      val country = lookupInArray(sign, signPrefixes.value) // access the variable with the value property
+      (country, count)
+    }.reduceByKey((x, y) => x + y)
 
   }
 
   def loadCallSignTable() ={
     scala.io.Source.fromFile("D:/data/callsign_tbl_sorted").getLines().filter(_ != "").toArray
+  }
+
+  def lookupInArray(sign: String, prefixArray: Array[String]) = {
+    val pos = java.util.Arrays.binarySearch(prefixArray.asInstanceOf[Array[AnyRef]], sign) match {
+      case x if x < 0 => -x-1
+      case x => x
+    }
+    prefixArray(pos).split(",")(1)
   }
 }
